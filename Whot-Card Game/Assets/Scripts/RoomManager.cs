@@ -7,62 +7,93 @@ using TMPro;
 
 public class RoomManager : MonoBehaviourPunCallbacks
 {
-    public int selectedPlayerCount = 2; // Default to 2 players
-    public GameObject twoPlayersButton; // Button for 2 players
-    public GameObject threePlayersButton; // Button for 3 players
+    #region Singleton
+    public static RoomManager Instance;
+    private void Awake() => Instance = this;
+    #endregion
 
-    Vector2 downSpawnPoint;
-    Vector2 upSpawnPoint;
-    Vector2 middleSpawnPoint1, middleSpawnPoint2; // For the third player
-
-    public GameObject playerHandPrefab; // Prefab for instantiating player hands
-    private Dictionary<int, GameObject> playerHands = new Dictionary<int, GameObject>();
-    GameManager gameManager;
+    #region Public Variables
+    public int selectedPlayerCount = 2; 
+    public GameObject twoPlayersButton; 
+    public GameObject threePlayersButton; 
+    public GameObject playerHandPrefab;
     public GameObject roomPanel;
     public GameObject errorPanel;
     public TMP_InputField joinRoomInput;
+    public int roomIdLength = 6;
+    public static string currentRoomName = "RoomID";
+    public bool isMax = false;
+    public GameObject settingGameScreen;
+    public GameObject loadingScreen, roomMenuScreen, errorMenu, createRoomMenu, joinRoomMenu;
+    #endregion
+
+    #region Private Variables
+    private Vector2 downSpawnPoint;
+    private Vector2 upSpawnPoint;
+    private Vector2 middleSpawnPoint1, middleSpawnPoint2; 
+    private Dictionary<int, GameObject> playerHands = new Dictionary<int, GameObject>(); 
     private string lastCreatedRoomId;
-    public int roomIdLength = 6; // Length of the room ID
     private const string RoomIdProperty = "RoomID";
     private bool isConnectedToLobby = false;
     private bool roomListUpdated = false;
     private List<RoomInfo> roomList = new List<RoomInfo>();
-    public static string currentRoomName = "RoomID";
-    public bool isMax = false;
-    LoadConnecting loadConnecting;
-    public GameObject settingGameScreen;
-    public GameObject loadingScreen, roomMenuScreen, errorMenu, createRoomMenu, joinRoomMenu;
+    private LoadConnecting loadConnecting;
+    #endregion
 
-    void Start()
+    #region Private Methods
+    private void Start()
     {
         PhotonNetwork.ConnectUsingSettings();
-        gameManager = FindObjectOfType<GameManager>();
         downSpawnPoint = new Vector2(0.1f, -3f);
         upSpawnPoint = new Vector2(0.1f, 3f);
-        middleSpawnPoint1 = new Vector2(-1f, 3f); // Middle position for the third player
+        middleSpawnPoint1 = new Vector2(-1f, 3f); 
         middleSpawnPoint2 = new Vector2(1f, 3f);
         loadConnecting = FindObjectOfType<LoadConnecting>();
     }
 
-    // Method to handle when the "2 Players" button is clicked
+    IEnumerator DelayRetrieval()
+    {
+        yield return new WaitForSeconds(3.0f);
+        foreach (var player in PhotonNetwork.PlayerList)
+        {
+            photonView.RPC("RPC_DealInitialCards", RpcTarget.OthersBuffered, player.ActorNumber);
+            photonView.RPC("RPC_NewPlayerJoinedRoom", RpcTarget.All);
+        }
+    }
+
+    private string GenerateRoomId()
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        var random = new System.Random();
+        char[] id = new char[roomIdLength];
+
+        for (int i = 0; i < roomIdLength; i++)
+        {
+            id[i] = chars[random.Next(chars.Length)];
+        }
+
+        return new string(id);
+    }
+    #endregion
+
+    #region Public Methods
     public void OnClickTwoPlayers()
     {
         selectedPlayerCount = 2;
         Debug.Log("Selected player count: 2");
     }
 
-    // Method to handle when the "3 Players" button is clicked
+  
     public void OnClickThreePlayers()
     {
         selectedPlayerCount = 3;
         Debug.Log("Selected player count: 3");
     }
 
-    // This method is called when creating a room
     public void OnClickCreate()
     {
         lastCreatedRoomId = GenerateRoomId();
-        RoomOptions roomOptions = new RoomOptions { MaxPlayers = (byte)selectedPlayerCount }; // Use selected player count
+        RoomOptions roomOptions = new RoomOptions { MaxPlayers = (byte)selectedPlayerCount }; 
         roomOptions.CustomRoomProperties = new ExitGames.Client.Photon.Hashtable { { RoomIdProperty, lastCreatedRoomId } };
         roomOptions.CustomRoomPropertiesForLobby = new string[] { RoomIdProperty };
         PhotonNetwork.CreateRoom(lastCreatedRoomId, roomOptions);
@@ -112,8 +143,6 @@ public class RoomManager : MonoBehaviourPunCallbacks
         roomListUpdated = true;
         Debug.Log("Room list updated with " + roomList.Count + " rooms.");
 
-        // Try joining existing rooms only after the room list has been updated
-
         if (loadConnecting.isPlayRandom)
             TryJoinExistingRoom();
     }
@@ -122,53 +151,31 @@ public class RoomManager : MonoBehaviourPunCallbacks
     {
         TryJoinExistingRoom();
     }
-    // Override OnJoinedRoom to handle the correct number of players
+   
     public override void OnJoinedRoom()
     {
         photonView.RPC("RPC_InstantiatePlayerHand", RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.ActorNumber);
 
         if (PhotonNetwork.IsMasterClient)
         {
-            gameManager.InitializeGame();
+           
+            DeckManager.Instance.InitializeGame();
         }
     }
 
-    [PunRPC]
-    void RPC_InstantiatePlayerHand(int actorNumber)
+    public Transform GetPlayerHandTransform(int actorNumber)
     {
-        if (!playerHands.ContainsKey(actorNumber))
+        if (playerHands.ContainsKey(actorNumber))
         {
-            // Determine where to spawn the player's hand based on their ActorNumber
-            Vector2 spawnPoint;
-
-            if (selectedPlayerCount == 2)
-            {
-                spawnPoint = (actorNumber == PhotonNetwork.LocalPlayer.ActorNumber) ? downSpawnPoint : upSpawnPoint;
-            }
-            else // For 3 players
-            {
-                if (actorNumber == PhotonNetwork.LocalPlayer.ActorNumber)
-                    spawnPoint = downSpawnPoint;
-                else if (playerHands.Count == 1)
-                    spawnPoint = middleSpawnPoint1; // Middle position for 2nd player
-                else
-                    spawnPoint = middleSpawnPoint2; // Upper position for 3rd player
-            }
-
-            // Instantiate player hand object at the correct spawn point
-            GameObject playerHandObject = PhotonNetwork.Instantiate(playerHandPrefab.name, spawnPoint, Quaternion.identity);
-            playerHands[actorNumber] = playerHandObject;
-
-            // If it's the local player, set the player hand for local interaction
-            if (actorNumber == PhotonNetwork.LocalPlayer.ActorNumber)
-            {
-                gameManager.SetPlayerHandTransform(playerHandObject.transform); // Set for local player
-            }
-
-            Debug.Log($"Player {actorNumber}'s hand instantiated at {(actorNumber == PhotonNetwork.LocalPlayer.ActorNumber ? "bottom" : (playerHands.Count == 1 ? "middle" : "top"))}.");
+            Debug.Log($"Player hand found for actor number: {actorNumber}");
+            return playerHands[actorNumber].transform;
         }
+        else
+        {
+            Debug.LogWarning($"Player hand not found for actor number: {actorNumber}. Current keys in playerHands: {string.Join(", ", playerHands.Keys)}");
+        }
+        return null;
     }
-
 
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
@@ -178,7 +185,6 @@ public class RoomManager : MonoBehaviourPunCallbacks
         {
             int currentPlayerCount = PhotonNetwork.PlayerList.Length;
 
-            // Check if we have the correct number of players before starting the game
             if (currentPlayerCount == selectedPlayerCount)
             {
                 StartCoroutine(DelayRetrieval());
@@ -187,27 +193,6 @@ public class RoomManager : MonoBehaviourPunCallbacks
             {
                 Debug.Log("Waiting for more players. Current count: " + currentPlayerCount);
             }
-        }
-    }
-
-
-    [PunRPC]
-    void RPC_NewPlayerJoinedRoom()
-    {
-        loadingScreen.SetActive(false);
-        roomMenuScreen.SetActive(false);
-        errorMenu.SetActive(false);
-        createRoomMenu.SetActive(false);
-        joinRoomMenu.SetActive(false);
-    }
-
-    IEnumerator DelayRetrieval()
-    {
-        yield return new WaitForSeconds(3.0f);
-        foreach (var player in PhotonNetwork.PlayerList)
-        {
-            photonView.RPC("RPC_DealInitialCards", RpcTarget.OthersBuffered, player.ActorNumber);
-            photonView.RPC("RPC_NewPlayerJoinedRoom", RpcTarget.All);
         }
     }
 
@@ -221,7 +206,8 @@ public class RoomManager : MonoBehaviourPunCallbacks
     {
         base.OnPlayerLeftRoom(otherPlayer);
         Debug.Log("Player left the room: " + otherPlayer.NickName);
-        gameManager.ReturnToMainMenu();
+        
+        GameManager.Instance.ReturnToMainMenu();
     }
 
     public override void OnCreateRoomFailed(short returnCode, string message)
@@ -236,7 +222,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
         base.OnJoinRoomFailed(returnCode, message);
         Debug.LogWarning("Failed to join room: " + message);
         errorPanel.SetActive(true);
-       // CreateNewRoom();
+       
     }
 
     public void TryJoinExistingRoom()
@@ -262,35 +248,54 @@ public class RoomManager : MonoBehaviourPunCallbacks
         }
 
         Debug.Log("No suitable room found, creating a new one.");
-        // If no existing room with matching player count is found, create a new room
+      
         CreateNewRoom();
     }
+    #endregion
 
-
-    private string GenerateRoomId()
+    #region PunRPC Methods
+    [PunRPC]
+    void RPC_InstantiatePlayerHand(int actorNumber)
     {
-        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        var random = new System.Random();
-        char[] id = new char[roomIdLength];
-
-        for (int i = 0; i < roomIdLength; i++)
+        if (!playerHands.ContainsKey(actorNumber))
         {
-            id[i] = chars[random.Next(chars.Length)];
-        }
+            
+            Vector2 spawnPoint;
 
-        return new string(id);
+            if (selectedPlayerCount == 2)
+            {
+                spawnPoint = (actorNumber == PhotonNetwork.LocalPlayer.ActorNumber) ? downSpawnPoint : upSpawnPoint;
+            }
+            else 
+            {
+                if (actorNumber == PhotonNetwork.LocalPlayer.ActorNumber)
+                    spawnPoint = downSpawnPoint;
+                else if (playerHands.Count == 1)
+                    spawnPoint = middleSpawnPoint1; 
+                else
+                    spawnPoint = middleSpawnPoint2; 
+            }
+  
+            GameObject playerHandObject = PhotonNetwork.Instantiate(playerHandPrefab.name, spawnPoint, Quaternion.identity);
+            playerHands[actorNumber] = playerHandObject;
+   
+            if (actorNumber == PhotonNetwork.LocalPlayer.ActorNumber)
+            {
+               PlayerManager.Instance.SetPlayerHandTransform(playerHandObject.transform);
+            }
+
+            Debug.Log($"Player {actorNumber}'s hand instantiated at {(actorNumber == PhotonNetwork.LocalPlayer.ActorNumber ? "bottom" : (playerHands.Count == 1 ? "middle" : "top"))}.");
+        }
     }
-    public Transform GetPlayerHandTransform(int actorNumber)
+
+    [PunRPC]
+    void RPC_NewPlayerJoinedRoom()
     {
-        if (playerHands.ContainsKey(actorNumber))
-        {
-            Debug.Log($"Player hand found for actor number: {actorNumber}");
-            return playerHands[actorNumber].transform;
-        }
-        else
-        {
-            Debug.LogWarning($"Player hand not found for actor number: {actorNumber}. Current keys in playerHands: {string.Join(", ", playerHands.Keys)}");
-        }
-        return null;
+        loadingScreen.SetActive(false);
+        roomMenuScreen.SetActive(false);
+        errorMenu.SetActive(false);
+        createRoomMenu.SetActive(false);
+        joinRoomMenu.SetActive(false);
     }
+    #endregion
 }

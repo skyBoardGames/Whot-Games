@@ -3,13 +3,17 @@ using UnityEngine.SceneManagement;
 
 public class MusicManager : MonoBehaviour
 {
-    public AudioClip menuMusicClip;  // Music clip for the Main Menu
-    public AudioClip gameMusicClip;  // Music clip for the Game Scene
+    #region Public Variables
+    public AudioClip menuMusicClip;  
+    public AudioClip gameMusicClip;
+    #endregion
 
+    #region Private Variables
     private AudioSource audioSource;
-
     private static MusicManager instance;
+    #endregion
 
+    #region Unity Methods
     private void Awake()
     {
         // Singleton pattern to keep music persistent across scenes
@@ -35,7 +39,9 @@ public class MusicManager : MonoBehaviour
             PlayMusic(menuMusicClip);
         }
     }
+    #endregion
 
+    #region Private Methods
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (scene.name == "Game")
@@ -62,4 +68,5 @@ public class MusicManager : MonoBehaviour
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
+    #endregion
 }

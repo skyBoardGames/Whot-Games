@@ -6,6 +6,8 @@ public class Menu : MonoBehaviour
 {
 
     public static bool isGamePaused = false;
+
+    #region Public Methods
     public void Play()
     {
         Time.timeScale = 1f;
@@ -41,4 +43,5 @@ public class Menu : MonoBehaviour
     {
         Application.Quit();
     }
+    #endregion
 }

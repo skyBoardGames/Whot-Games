@@ -1108,8 +1108,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 855287296}
-        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+      - m_Target: {fileID: 855287305}
+        m_TargetAssemblyTypeName: CardEffectsManager, Assembly-CSharp
         m_MethodName: OnShapeSelected
         m_Mode: 5
         m_Arguments:
@@ -3790,8 +3790,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 855287296}
-        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+      - m_Target: {fileID: 855287305}
+        m_TargetAssemblyTypeName: CardEffectsManager, Assembly-CSharp
         m_MethodName: OnShapeSelected
         m_Mode: 5
         m_Arguments:
@@ -4818,8 +4818,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 855287296}
-        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+      - m_Target: {fileID: 855287302}
+        m_TargetAssemblyTypeName: DeckManager, Assembly-CSharp
         m_MethodName: DrawCard
         m_Mode: 1
         m_Arguments:
@@ -5090,9 +5090,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 855287295}
-  - component: {fileID: 855287296}
   - component: {fileID: 855287297}
   - component: {fileID: 855287298}
+  - component: {fileID: 855287304}
+  - component: {fileID: 855287303}
+  - component: {fileID: 855287302}
+  - component: {fileID: 855287300}
+  - component: {fileID: 855287299}
+  - component: {fileID: 855287305}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -5115,36 +5120,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &855287296
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 855287294}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 213dc4fcb5b94df4096cbbb35cd02063, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cardPrefab: {fileID: 8259089098716931907, guid: 1998624452848974cb3ed8e363215e3b, type: 3}
-  deckTransform: {fileID: 668794263}
-  discardPileTransform: {fileID: 3649136903740865946}
-  playerHandTransform: {fileID: 1354320064865806942, guid: 51fefed8578657d4ebb5bfac52a92867, type: 3}
-  shapeSprites: {fileID: 11400000, guid: 0fc88767a2c46ad46aa4986a8f5b37c5, type: 2}
-  cardBackSprite: {fileID: 21300000, guid: 8af1d3d45a234234cb07d7069db95a57, type: 3}
-  turnText: {fileID: 1594114190}
-  shapeSelectionPanel: {fileID: 2125884208}
-  shapeButtons:
-  - {fileID: 1259193039}
-  - {fileID: 196187656}
-  - {fileID: 589461858}
-  - {fileID: 1929405711}
-  - {fileID: 1681168646}
-  winPanel: {fileID: 1301598476}
-  losePanel: {fileID: 1777052158}
-  requestedShape: 
-  isShapeSelectionActive: 0
 --- !u!114 &855287297
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5194,6 +5169,92 @@ MonoBehaviour:
   errorMenu: {fileID: 697163443}
   createRoomMenu: {fileID: 433142015}
   joinRoomMenu: {fileID: 753709336}
+--- !u!114 &855287299
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 855287294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27b9d58b1cc6ae348b017bf2295acf3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerHandTransform: {fileID: 1354320064865806942, guid: 51fefed8578657d4ebb5bfac52a92867, type: 3}
+--- !u!114 &855287300
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 855287294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 956cbd8397cfdbe46ba3f0696be24f2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isPlayerTurn: 0
+  turnText: {fileID: 1594114190}
+--- !u!114 &855287302
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 855287294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28163d950ede2f44781e744b161adbd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cardPrefab: {fileID: 8259089098716931907, guid: 1998624452848974cb3ed8e363215e3b, type: 3}
+  deckTransform: {fileID: 668794263}
+  discardPileTransform: {fileID: 3649136903740865946}
+  startingHandSize: 4
+  topCard: {fileID: 0}
+--- !u!114 &855287303
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 855287294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2c4327823c1eaf479a486ebefd7641b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &855287304
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 855287294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d8a9f1ce7708614c853dfa692989806, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shapeSelectionPanel: {fileID: 2125884208}
+  isShapeSelectionActive: 0
+  winPanel: {fileID: 1301598476}
+  losePanel: {fileID: 1777052158}
+  shapeSprites: {fileID: 11400000, guid: 0fc88767a2c46ad46aa4986a8f5b37c5, type: 2}
+  requestedShape: 
+--- !u!114 &855287305
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 855287294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da64e91fdc3eeb147a41f4b56f0d716e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &877960207
 GameObject:
   m_ObjectHideFlags: 0
@@ -6563,8 +6624,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 855287296}
-        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+      - m_Target: {fileID: 855287305}
+        m_TargetAssemblyTypeName: CardEffectsManager, Assembly-CSharp
         m_MethodName: OnShapeSelected
         m_Mode: 5
         m_Arguments:
@@ -9508,8 +9569,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 855287296}
-        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+      - m_Target: {fileID: 855287305}
+        m_TargetAssemblyTypeName: CardEffectsManager, Assembly-CSharp
         m_MethodName: OnShapeSelected
         m_Mode: 5
         m_Arguments:
@@ -10253,8 +10314,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 855287296}
-        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+      - m_Target: {fileID: 855287305}
+        m_TargetAssemblyTypeName: CardEffectsManager, Assembly-CSharp
         m_MethodName: OnShapeSelected
         m_Mode: 5
         m_Arguments:

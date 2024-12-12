@@ -3,15 +3,26 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+
 public class LoadConnecting : MonoBehaviour
 {
+    #region Public Variables
     public bool isPlayRandom = false;
     public bool isCreateRoom = false;
     public bool isJoinRoom = false;
     public TextMeshProUGUI roomIDText;
-   
- 
-  
+    #endregion
+
+    #region Unity Methods
+    void Start()
+    {
+        isCreateRoom = false;
+        isJoinRoom = false;
+        isPlayRandom = false;
+    }
+    #endregion
+
+    #region Public Methods
     public void EnterCreateRoom()
     {
         isCreateRoom = true;
@@ -33,22 +44,5 @@ public class LoadConnecting : MonoBehaviour
         isCreateRoom = false;
         roomIDText.text = "";
     }
-
-
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        isCreateRoom = false;
-        isJoinRoom = false;
-        isPlayRandom = false;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
-
-  
+    #endregion
 }

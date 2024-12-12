@@ -4,51 +4,48 @@ using System.Collections.Generic;
 
 public class Card : MonoBehaviour
 {
+    #region Fields
+    private Collider2D cardCollider;
+    public bool isPositioned = false;
+
+    [SerializeField] private TextMeshProUGUI numberText;
+    [SerializeField] private SpriteRenderer spriteRenderer;
+    [SerializeField] private GameObject cardBack;
+
     public string shape;
     public int number;
-    public TextMeshProUGUI numberText;
-    public SpriteRenderer spriteRenderer;
-    public GameObject cardBack; // Reference to the CardBack GameObject
-
     public Dictionary<string, Sprite> shapeSprites;
+    #endregion
 
-    private GameManager gameManager;
-    private Collider2D cardCollider; // Reference to the card's collider
-    public bool isPositioned = false;
+    #region Unity Methods
     private void Awake()
     {
         cardCollider = GetComponent<Collider2D>();
     }
 
-    void Start()
+    private void OnMouseDown()
     {
-        gameManager = FindObjectOfType<GameManager>();
-    }
+        if (PlayerManager.Instance.CanPlayCard(this) && !Menu.isGamePaused)
+        {
+            PlayerManager.Instance.PlayCard(this);
+            Debug.Log("Played");
 
+            // If the card is played and a shape is requested, reset the requested shape
+            if (!string.IsNullOrEmpty(GameManager.Instance.requestedShape))
+            {
+                //  gameManager.RequestShape(""); // Reset requested shape
+            }
+        }
+    }
+    #endregion
+
+    #region Public Methods
     public void SetCard(string shape, int number)
     {
        
         this.shape = shape;
         this.number = number;
         UpdateCard(); // Update the visuals based on the shape and number
-    }
-
-    void UpdateCard()
-    {
-        numberText.text = number.ToString();
-        if (shapeSprites == null)
-        {
-            Debug.LogError("ShapeSprites dictionary is null in Card.");
-            return;
-        }
-        if (shapeSprites.ContainsKey(shape))
-        {
-            spriteRenderer.sprite = shapeSprites[shape];
-        }
-        else
-        {
-            Debug.LogWarning($"Shape {shape} not found in shapeSprites dictionary");
-        }
     }
 
     public void ShowFront()
@@ -66,20 +63,26 @@ public class Card : MonoBehaviour
         cardBack.SetActive(true);
         cardCollider.enabled = false; // Disable collider for non-playable cards
     }
+    #endregion
 
-    private void OnMouseDown()
+    #region Private Methods
+    void UpdateCard()
     {
-        if (gameManager.CanPlayCard(this) && !Menu.isGamePaused)
+        numberText.text = number.ToString();
+        if (shapeSprites == null)
         {
-            gameManager.PlayCard(this);
-            Debug.Log("Played");
-
-            // If the card is played and a shape is requested, reset the requested shape
-            if (!string.IsNullOrEmpty(gameManager.requestedShape))
-            {
-                //  gameManager.RequestShape(""); // Reset requested shape
-            }
+            Debug.LogError("ShapeSprites dictionary is null in Card.");
+            return;
+        }
+        if (shapeSprites.ContainsKey(shape))
+        {
+            spriteRenderer.sprite = shapeSprites[shape];
+        }
+        else
+        {
+            Debug.LogWarning($"Shape {shape} not found in shapeSprites dictionary");
         }
     }
+    #endregion
 }
 
