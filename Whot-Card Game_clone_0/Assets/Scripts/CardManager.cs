@@ -14,23 +14,23 @@ public class CardManager : MonoBehaviourPun
     #region Public Methods
     public void OnShapeSelected(string selectedShape)
     {
-        // Hide the shape selection panel
+        // Update GameManager state
         GameManager.Instance.shapeSelectionPanel.SetActive(false);
-
-        // Send the selected shape to other players
-        photonView.RPC("RPC_ShapeSelected", RpcTarget.AllBuffered, selectedShape, PhotonNetwork.LocalPlayer.ActorNumber);
-
-        // Allow the player to proceed with their turn after selecting the shape
-        TurnManager.Instance.isPlayerTurn = true;
-
-        // Update the requestedShape variable
+        GameManager.Instance.isShapeSelectionActive = false;
         GameManager.Instance.requestedShape = selectedShape;
 
-        // You may need to update the UI for the local player as well to indicate the selected shape
+        // Sync with other players
+        photonView.RPC("RPC_ShapeSelected", RpcTarget.AllBuffered, selectedShape, PhotonNetwork.LocalPlayer.ActorNumber);
 
+        // Reset shape selection and ensure the player retains their turn
+        TurnManager.Instance.isShapeSelectionPending = false;
+       // TurnManager.Instance.isPlayerTurn = true;
 
-        TurnManager.Instance.SwitchTurns();
+        // Update UI
+        TurnManager.Instance.UpdateTurnText();
     }
+
+
     #endregion
 
     #region PunRPC Methods
@@ -48,27 +48,44 @@ public class CardManager : MonoBehaviourPun
     }
 
     [PunRPC]
-    public void RPC_GeneralMarketEffect(int targetPlayerActorNumber)
+    public void RPC_GeneralMarketEffect(int playerWhoPlayedCardActorNumber)
     {
-        if (PhotonNetwork.LocalPlayer.ActorNumber == targetPlayerActorNumber) // Only apply to the player with the matching actor number
+        int localPlayerActorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
+
+        // Skip the player who played the card
+        if (localPlayerActorNumber != playerWhoPlayedCardActorNumber)
         {
-            DeckManager.Instance.DealCardToPlayer(PlayerManager.Instance.playerHands[targetPlayerActorNumber], RoomManager.Instance.GetPlayerHandTransform(targetPlayerActorNumber), targetPlayerActorNumber);
+            // Deal one card to the player
+            DeckManager.Instance.DealCardToPlayer(
+                PlayerManager.Instance.playerHands[localPlayerActorNumber],
+                RoomManager.Instance.GetPlayerHandTransform(localPlayerActorNumber),
+                localPlayerActorNumber
+            );
+
         }
-
     }
-
     [PunRPC]
     void RPC_ShapeSelected(string selectedShape, int actorNumber)
     {
-        // Update the requested shape in the game
         GameManager.Instance.requestedShape = selectedShape;
-        photonView.RPC("RPC_BlockOpponentActions", RpcTarget.OthersBuffered, false);
-        // Inform other players of the selected shape
-        if (PhotonNetwork.LocalPlayer.ActorNumber != actorNumber)
+
+        // Update the UI only for the player whose turn is active
+        int currentPlayerActorNumber = TurnManager.Instance.GetPlayerActorNumber(TurnManager.Instance.currentPlayerIndex);
+        if (PhotonNetwork.LocalPlayer.ActorNumber == currentPlayerActorNumber)
         {
-            // Display a message to the opponent
             TurnManager.Instance.turnText.text = $"Opponent selected: {selectedShape}. Provide or draw!";
+            TurnManager.Instance.isPlayerTurn = true;
         }
+
+       // GameManager.Instance.isShapeSelectionActive = false;
+      //  TurnManager.Instance.isShapeSelectionPending = false;
+        // Ensure only the next player is blocked
+      //  GameManager.Instance.isShapeSelectionActive = PhotonNetwork.LocalPlayer.ActorNumber == currentPlayerActorNumber;
+
+        // Reset blocking actions for others
+        photonView.RPC("RPC_BlockOpponentActions", RpcTarget.OthersBuffered, false);
     }
+
+
     #endregion
 }

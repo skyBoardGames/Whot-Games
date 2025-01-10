@@ -71,6 +71,8 @@ MonoBehaviour:
   - RPC_SkipTurn
   - RPC_ShapeSelected
   - RPC_BlockOpponentActions
+  - RPC_UpdateRecentlyPlayedCard
+  - RPC_UpdateTurn
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

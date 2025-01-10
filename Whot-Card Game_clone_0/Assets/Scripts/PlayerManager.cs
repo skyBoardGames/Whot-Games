@@ -17,9 +17,9 @@ public class PlayerManager : MonoBehaviourPun
 
     #region Private Variables
     private Vector3 initialTouchPosition;
-    private float scrollSpeed = 1.5f;
-    private float minScrollPosition = -0.1f;
-    private float maxScrollPosition = 0.1f;
+    private float scrollSpeed = 2.5f;
+    private float minScrollPosition = -0.3f;
+    private float maxScrollPosition = 0.3f;
     #endregion
 
     #region Unity Methods
@@ -37,24 +37,23 @@ public class PlayerManager : MonoBehaviourPun
     #region Private Methods
     void RemoveCardFromHand(Card card)
     {
+     
         GameObject cardObject = card.gameObject;
-
         if (playerHands[PhotonNetwork.LocalPlayer.ActorNumber].Contains(cardObject))
         {
-            playerHands[PhotonNetwork.LocalPlayer.ActorNumber].Remove(cardObject); // Remove from player's hand
-
+            playerHands[PhotonNetwork.LocalPlayer.ActorNumber].Remove(cardObject);
 
             if (cardObject != DeckManager.Instance.topCard)
             {
                 Destroy(cardObject);
             }
 
-            // Update the hand layout to remove any gaps left by the removed card
             UpdateHandLayout(playerHands[PhotonNetwork.LocalPlayer.ActorNumber], playerHandTransform);
-
             GameManager.Instance.CheckForWinCondition();
         }
     }
+
+
     #endregion
 
     #region Public Methods
@@ -62,82 +61,109 @@ public class PlayerManager : MonoBehaviourPun
     {
         playerHandTransform = handTransform;
     }
+
     public void HandleSwipeScrolling()
     {
         // Ensure the player's hand exists before accessing it
         if (!playerHands.ContainsKey(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             Debug.LogWarning($"Player hand not found for actor {PhotonNetwork.LocalPlayer.ActorNumber}. Aborting swipe handling.");
-            return; 
+            return;
         }
 
-        int cardCount = playerHands[PhotonNetwork.LocalPlayer.ActorNumber].Count; 
-        float cardWidth = 1.0f; 
-        float totalHandWidth = cardCount * cardWidth; 
+        // Get the local player's hand and the card positions
+        List<GameObject> hand = playerHands[PhotonNetwork.LocalPlayer.ActorNumber];
+        if (hand.Count == 0) return; // No cards to scroll
 
-        
-        float baseMinScrollPosition = -.1f; 
-        float baseMaxScrollPosition = .1f; 
+        // Calculate the visible bounds of the screen
+        float halfScreenWidth = Camera.main.orthographicSize * Screen.width / Screen.height;
 
-        minScrollPosition = baseMinScrollPosition - (totalHandWidth / 2f);
-        maxScrollPosition = baseMaxScrollPosition + (totalHandWidth / 2f);
+        // Find the leftmost and rightmost card positions in the hand
+        float leftmostCardX = hand.First().transform.localPosition.x;
+        float rightmostCardX = hand.Last().transform.localPosition.x;
 
+        // Adjust the scroll limits based on the card positions
+        minScrollPosition = Mathf.Min(leftmostCardX - halfScreenWidth, 0);
+        maxScrollPosition = Mathf.Max(rightmostCardX + halfScreenWidth, 0);
+
+        // Handle swipe input
         if (Input.GetMouseButtonDown(0))
         {
-            // Capture initial touch position
             initialTouchPosition = Input.mousePosition;
         }
         else if (Input.GetMouseButton(0))
         {
-           
             Vector3 currentTouchPosition = Input.mousePosition;
-            float swipeDelta = currentTouchPosition.x - initialTouchPosition.x;
+            float swipeDelta = (currentTouchPosition.x - initialTouchPosition.x) * scrollSpeed * Time.deltaTime;
 
-          
-            Vector3 newPosition = playerHandTransform.localPosition + new Vector3(swipeDelta * scrollSpeed * Time.deltaTime, 0, 0);
+            // Move the hand transform within the clamped bounds
+            Vector3 newPosition = playerHandTransform.localPosition + new Vector3(swipeDelta, 0, 0);
             newPosition.x = Mathf.Clamp(newPosition.x, minScrollPosition, maxScrollPosition);
 
-            
-            playerHandTransform.localPosition = Vector3.Lerp(playerHandTransform.localPosition, newPosition, 0.1f); // Adjust the third parameter for speed of smoothing
+            // Apply the new position
+            playerHandTransform.localPosition = Vector3.Lerp(playerHandTransform.localPosition, newPosition, 0.1f);
 
-           
             initialTouchPosition = currentTouchPosition;
         }
     }
+
+
     public void PlayCard(Card card)
     {
+        Debug.Log($"Additional check > PlayCard: {card.shape} {card.number} invoked by {PhotonNetwork.LocalPlayer.ActorNumber}");
         if (TurnManager.Instance.isPlayerTurn && CanPlayCard(card))
         {
 
+            switch (card.shape)
+            {
+                case "Whot":
+                    if (GameManager.Instance.isShapeSelectionActive)
+                    {
+                        Debug.LogWarning("Whot card logic already in progress.");
+                        return; // Prevent duplicate logic
+                    }
+                    GameManager.Instance.isShapeSelectionActive = true;
+                    GameManager.Instance.shapeSelectionPanel.SetActive(true);
+                    TurnManager.Instance.isShapeSelectionPending = true;
+                    TurnManager.Instance.isPlayerTurn = false;
+                    int nextPlayerActorNumber = TurnManager.Instance.GetOpponentActorNumber();
+                   // photonView.RPC("RPC_ShapeSelected", RpcTarget.All, card.shape, PhotonNetwork.LocalPlayer.ActorNumber);
+                    photonView.RPC("RPC_BlockOpponentActions", RpcTarget.OthersBuffered, true);
+                    TurnManager.Instance.UpdateTurnText();
+                    break;
+
+                default:
+                    switch (card.number)
+                    {
+                        case 2:
+                            int opponentActorNumber2 = TurnManager.Instance.GetOpponentActorNumber(); // Get the opponent's ActorNumber
+                            photonView.RPC("RPC_PickTwoEffect", RpcTarget.All, opponentActorNumber2); // Target the specific opponent
+
+                            photonView.RPC("RPC_SkipTurn", RpcTarget.AllBuffered, opponentActorNumber2,false);
+                            break;
+
+                        case 14:
+                            int currentPlayerActorNumber = TurnManager.Instance.GetPlayerActorNumber(TurnManager.Instance.currentPlayerIndex);
+                            photonView.RPC("RPC_GeneralMarketEffect", RpcTarget.All, PhotonNetwork.LocalPlayer.ActorNumber);// Pass the actor number of the player who played the card
+                            photonView.RPC("RPC_SkipTurn", RpcTarget.AllBuffered, currentPlayerActorNumber, true); // Retain current turn
+                            break;
+
+                        case 1:
+                            int opponentActorNumber1 = TurnManager.Instance.GetOpponentActorNumber();
+                            photonView.RPC("RPC_SkipTurn", RpcTarget.AllBuffered, opponentActorNumber1, false);
+                            break;
+                        default:
+                            // Handle non-special cards if needed
+                            break;
+                    }
+                    break;
+            }
+
             photonView.RPC("RPC_PlayCard", RpcTarget.AllBuffered, card.shape, card.number, PhotonNetwork.LocalPlayer.ActorNumber);
-
-            if (card.shape == "Whot")
+            if (GameManager.Instance.requestedShape != null && card.shape == GameManager.Instance.requestedShape)
             {
-                GameManager.Instance.isShapeSelectionActive = true;
-                GameManager.Instance.shapeSelectionPanel.SetActive(true);
-
-                TurnManager.Instance.isPlayerTurn = false;
-                photonView.RPC("RPC_BlockOpponentActions", RpcTarget.OthersBuffered, true);
-                return;
+                GameManager.Instance.requestedShape = null;
             }
-            // Check for special cards and apply effects
-            else if (card.number == 2)
-            {
-                int opponentActorNumber = TurnManager.Instance.GetOpponentActorNumber(); // Get the opponent's ActorNumber
-                photonView.RPC("RPC_PickTwoEffect", RpcTarget.All, opponentActorNumber); // Target the specific opponent
-
-
-                photonView.RPC("RPC_SkipTurn", RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.ActorNumber);
-            }
-            else if (card.number == 14)
-            {
-                int opponentActorNumber = TurnManager.Instance.GetOpponentActorNumber();
-                photonView.RPC("RPC_GeneralMarketEffect", RpcTarget.All, opponentActorNumber); // Apply to all players
-
-                photonView.RPC("RPC_SkipTurn", RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.ActorNumber);
-            }
-
-
             RemoveCardFromHand(card);
             photonView.RPC("RPC_UpdateHand", RpcTarget.Others, PhotonNetwork.LocalPlayer.ActorNumber, playerHands[PhotonNetwork.LocalPlayer.ActorNumber].Select(c => c.GetComponent<Card>().shape + "_" + c.GetComponent<Card>().number).ToArray());
         }
@@ -145,37 +171,49 @@ public class PlayerManager : MonoBehaviourPun
 
     public bool CanPlayCard(Card card)
     {
-
+        // Allow playing a Whot card at any time
         if (card.shape == "Whot")
         {
             return true;
         }
-        if (DeckManager.Instance.topCard.GetComponent<Card>().shape == "Whot")
+
+        // Ensure the top card exists
+        if (DeckManager.Instance.topCard.GetComponent<Card>() == null)
+        {
+            Debug.LogWarning("Top card component is null.");
+            return false;
+        }
+
+        Card topCardComponent = DeckManager.Instance.topCard.GetComponent<Card>();
+
+        // Check for requested shape if active
+        if (GameManager.Instance.requestedShape != null)
         {
             return card.shape == GameManager.Instance.requestedShape;
         }
-        // Logic for normal cards (check shape and number)
-        if (DeckManager.Instance.topCard != null)
-        {
-            Card topCardComponent = DeckManager.Instance.topCard.GetComponent<Card>();
-            return card.shape == topCardComponent.shape || card.number == topCardComponent.number; // Allow if shapes or numbers match
-        }
 
-        return false;
+        // Normal check for matching shape or number
+        return card.shape == topCardComponent.shape || card.number == topCardComponent.number;
     }
+
+
+
     public void UpdateHandLayout(List<GameObject> hand, Transform handTransform)
     {
-        if (handTransform == playerHandTransform) 
+        if (handTransform == playerHandTransform)
         {
             float cardSpacing = 1.5f;
-            float startPositionX = -2.45f;
+            float startPositionX = -((hand.Count - 1) * cardSpacing) / 2f; // Center the hand
 
             for (int i = 0; i < hand.Count; i++)
             {
                 GameObject card = hand[i];
-                card.transform.localPosition = new Vector3(startPositionX + i * cardSpacing, 0, 0); // Reposition the card
-                card.GetComponent<Card>().ShowFront(); 
+                card.transform.localPosition = new Vector3(startPositionX + i * cardSpacing, 0, 0);
+                card.GetComponent<Card>().ShowFront();
             }
+
+            // Reset scroll limits
+            HandleSwipeScrolling();
         }
         else
         {
@@ -184,11 +222,12 @@ public class PlayerManager : MonoBehaviourPun
             for (int i = 0; i < hand.Count; i++)
             {
                 GameObject card = hand[i];
-                card.transform.localPosition = new Vector3(0, i * stackOffset, 0); 
-                card.GetComponent<Card>().ShowBack(); 
+                card.transform.localPosition = new Vector3(0, i * stackOffset, 0);
+                card.GetComponent<Card>().ShowBack();
             }
         }
     }
+
     #endregion
 
     #region PunRPC Methods
@@ -216,7 +255,6 @@ public class PlayerManager : MonoBehaviourPun
             string shape = splitData[0];
             int number = int.Parse(splitData[1]);
 
-            
             GameObject newCard = Instantiate(DeckManager.Instance.cardPrefab);
             Card cardComponent = newCard.GetComponent<Card>();
             cardComponent.shapeSprites = GameManager.Instance.shapeSprites.GetShapeSpriteDictionary();
@@ -229,6 +267,7 @@ public class PlayerManager : MonoBehaviourPun
         // Update hand layout and visibility (local player sees front, opponents see back)
         Transform handTransform = RoomManager.Instance.GetPlayerHandTransform(actorNumber);
         UpdateHandLayout(hand, handTransform);
+      
     }
 
     [PunRPC]
@@ -242,7 +281,7 @@ public class PlayerManager : MonoBehaviourPun
         }
 
         // Update the hand layout after removing the card
-        Transform handTransform =   RoomManager.Instance.GetPlayerHandTransform(actorNumber);
+        Transform handTransform = RoomManager.Instance.GetPlayerHandTransform(actorNumber);
         UpdateHandLayout(playerHands[actorNumber], handTransform);
 
         GameManager.Instance.CheckForWinCondition();
@@ -251,6 +290,11 @@ public class PlayerManager : MonoBehaviourPun
     [PunRPC]
     void RPC_PlayCard(string shape, int number, int actorNumber)
     {
+
+        if (actorNumber != PhotonNetwork.LocalPlayer.ActorNumber)
+        {
+            return; // Skip processing if it's not the local player who played the card
+        }
         // Deactivate the previous top card if it exists
         if (DeckManager.Instance.topCard != null)
         {
@@ -262,6 +306,7 @@ public class PlayerManager : MonoBehaviourPun
         GameObject playedCard = playerHands[PhotonNetwork.LocalPlayer.ActorNumber].Find(
             c => c.GetComponent<Card>().shape == shape && c.GetComponent<Card>().number == number
         );
+      
 
         if (playedCard != null)
         {
@@ -277,7 +322,10 @@ public class PlayerManager : MonoBehaviourPun
         }
 
         Debug.Log($"Card Played: {shape} {number}");
-        TurnManager.Instance.SwitchTurns();
+        if (number != 14)
+        {
+            TurnManager.Instance.SwitchTurns();
+        }
     }
 }
 #endregion

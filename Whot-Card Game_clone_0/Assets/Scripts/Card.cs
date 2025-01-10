@@ -25,7 +25,7 @@ public class Card : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (PlayerManager.Instance.CanPlayCard(this) && !Menu.isGamePaused)
+        if (!Menu.isGamePaused)
         {
             PlayerManager.Instance.PlayCard(this);
             Debug.Log("Played");

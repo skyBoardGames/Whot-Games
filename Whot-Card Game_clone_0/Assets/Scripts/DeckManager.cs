@@ -29,18 +29,30 @@ public class DeckManager : MonoBehaviourPun
         if (deck.Count > 0)
         {
             GameObject card = deck[0];
-            deck.RemoveAt(0); // Remove the dealt card from the deck so it can't be dealt again
+            deck.RemoveAt(0);
+
+            // Ensure no duplicates across all hands
+            if (PlayerManager.Instance.playerHands.Values.Any(h =>
+                h.Any(c => c.GetComponent<Card>().shape == card.GetComponent<Card>().shape &&
+                           c.GetComponent<Card>().number == card.GetComponent<Card>().number)))
+            {
+                Debug.LogWarning("Duplicate card detected across players. Drawing another card.");
+                DealCardToPlayer(hand, handTransform, actorNumber);
+                return;
+            }
 
             hand.Add(card);
             card.SetActive(true);
             card.transform.SetParent(handTransform);
 
-            // Synchronize the dealt card with all other players so they are aware of the updated deck and hands
+            // Synchronize hand and deck
             string[] cardData = hand.Select(c => c.GetComponent<Card>().shape + "_" + c.GetComponent<Card>().number).ToArray();
             photonView.RPC("RPC_UpdateHand", RpcTarget.AllBuffered, actorNumber, cardData);
             photonView.RPC("RPC_UpdateDeck", RpcTarget.OthersBuffered, GetDeckCardData());
         }
     }
+
+
 
     // Helper method to get current deck data
     string[] GetDeckCardData()
@@ -50,21 +62,21 @@ public class DeckManager : MonoBehaviourPun
 
     void CreateCard(string shape, int number)
     {
+        if (deck.Any(c => c.GetComponent<Card>().shape == shape && c.GetComponent<Card>().number == number))
+        {
+            Debug.LogWarning($"Duplicate card detected: {shape} {number}. Skipping creation.");
+            return;
+        }
+
         GameObject newCard = Instantiate(cardPrefab, deckTransform);
         Card cardComponent = newCard.GetComponent<Card>();
-
-        // Ensure that the shapeSprites dictionary is set before the card is used
         cardComponent.shapeSprites = GameManager.Instance.shapeSprites.GetShapeSpriteDictionary();
-
-        // Debugging to ensure dictionary is populated
-
-
-        // Now set the card shape and number
         cardComponent.SetCard(shape, number);
 
         deck.Add(newCard);
         newCard.SetActive(false);
     }
+
     #endregion
 
     #region Public Methods
@@ -139,35 +151,54 @@ public class DeckManager : MonoBehaviourPun
 
     public void DrawCard()
     {
-        if (!GameManager.Instance.isShapeSelectionActive && TurnManager.Instance.isPlayerTurn && deck.Count > 0)
+        if (!TurnManager.Instance.isBlocking)
         {
-            photonView.RPC("RPC_DrawCard", RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.ActorNumber);
+            if (!GameManager.Instance.isShapeSelectionActive && TurnManager.Instance.isPlayerTurn && deck.Count > 0)
+            {
+                // Ensure the top card is not drawn
+                if (topCard == null || topCard.transform.parent != discardPileTransform)
+                {
+                    Debug.LogError("Top card is not properly set or misplaced.");
+                    return;
+                }
+
+                photonView.RPC("RPC_DrawCard", RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.ActorNumber);
+            }
         }
     }
+
     #endregion
 
     #region PunRPC Methods
     [PunRPC]
     void RPC_GenerateDeck()
     {
-        string[] shapes = { "Circle", "Square", "Cross", "Star", "Triangle" }; // Whot excluded initially
-        int[] numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 };
+        deck.Clear(); // Clear the deck before regenerating it
+        Dictionary<string, int[]> deckStructure = new Dictionary<string, int[]>
+    {
+        { "Star", new int[] { 1, 2, 3, 4, 5, 7, 8 } },
+        { "Cross", new int[] { 1, 2, 3, 5, 7, 10, 11, 13, 14 } },
+        { "Circle", new int[] { 1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 14 } },
+        { "Triangle", new int[] { 1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 14 } },
+        { "Square", new int[] { 1, 2, 3, 5, 7, 10, 11, 13, 14 } }
+    };
 
-        // Generate the normal cards
-        foreach (string shape in shapes)
+        foreach (var shape in deckStructure.Keys)
         {
-            foreach (int number in numbers)
+            foreach (var number in deckStructure[shape])
             {
                 CreateCard(shape, number);
             }
         }
 
-        for (int i = 0; i < 4; i++) // Adjust the number of Whot cards as needed
+        for (int i = 0; i < 4; i++) // Add Whot cards
         {
-            CreateCard("Whot", 20); // "Whot" card with a special number (e.g., 20)
+            CreateCard("Whot", 20);
         }
 
+        Debug.Log($"Deck initialized with {deck.Count} cards.");
     }
+
 
     [PunRPC]
     void RPC_UpdateDeck(string[] deckData)
@@ -180,9 +211,13 @@ public class DeckManager : MonoBehaviourPun
             int number = int.Parse(splitData[1]);
 
             // Recreate the deck with the remaining cards
-            CreateCard(shape, number);
+            if (!deck.Any(c => c.GetComponent<Card>().shape == shape && c.GetComponent<Card>().number == number))
+            {
+                CreateCard(shape, number);
+            }
         }
     }
+
 
     [PunRPC]
     void RPC_DealInitialCards(int actorNumber)
@@ -258,6 +293,12 @@ public class DeckManager : MonoBehaviourPun
     [PunRPC]
     void RPC_DrawCard(int drawingActorNumber)
     {
+        if (deck.Count == 0)
+        {
+            Debug.LogWarning("Deck is empty. No card to draw.");
+            return;
+        }
+
         if (PhotonNetwork.LocalPlayer.ActorNumber == drawingActorNumber)
         {
             DealCardToPlayer(PlayerManager.Instance.playerHands[drawingActorNumber], PlayerManager.Instance.playerHandTransform, drawingActorNumber);

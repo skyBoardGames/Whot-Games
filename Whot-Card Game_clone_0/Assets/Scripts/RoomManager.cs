@@ -4,6 +4,7 @@ using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class RoomManager : MonoBehaviourPunCallbacks
 {
@@ -188,6 +189,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
             if (currentPlayerCount == selectedPlayerCount)
             {
                 StartCoroutine(DelayRetrieval());
+                
             }
             else
             {
@@ -206,8 +208,16 @@ public class RoomManager : MonoBehaviourPunCallbacks
     {
         base.OnPlayerLeftRoom(otherPlayer);
         Debug.Log("Player left the room: " + otherPlayer.NickName);
-        
+        PhotonNetwork.Disconnect();
         GameManager.Instance.ReturnToMainMenu();
+    }
+
+    public override void OnDisconnected(DisconnectCause cause)
+    {
+        base.OnDisconnected(cause);
+        Debug.Log("Disconnected from Photon: " + cause);
+        GameManager.Instance.ReturnToMainMenu();
+        isConnectedToLobby = false;
     }
 
     public override void OnCreateRoomFailed(short returnCode, string message)
@@ -224,7 +234,15 @@ public class RoomManager : MonoBehaviourPunCallbacks
         errorPanel.SetActive(true);
        
     }
+    public void MainMenu()
+    {
+        Time.timeScale = 1f;
+      
+       
+        PhotonNetwork.Disconnect();
+     
 
+    }
     public void TryJoinExistingRoom()
     {
         if (!roomListUpdated)

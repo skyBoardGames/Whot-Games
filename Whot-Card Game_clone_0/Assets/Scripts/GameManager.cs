@@ -17,6 +17,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     public GameObject losePanel;
     public ShapeSpriteSO shapeSprites;
     public string requestedShape;
+    public int playerHandCount;
     #endregion
 
     #region Unity Methods
@@ -37,6 +38,7 @@ public class GameManager : MonoBehaviourPunCallbacks
         TurnManager.Instance.InitializeTurn();
         UIManager.Instance.HideAllPanels();
         DeckManager.Instance.InitializeGame();
+        requestedShape = null;
     }
 
     void Update()
@@ -50,6 +52,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     {
         foreach (var playerHand in PlayerManager.Instance.playerHands)
         {
+            playerHandCount = playerHand.Value.Count;
             if (playerHand.Value.Count == 0) // Check if any player's hand is empty
             {
                 if (playerHand.Key == PhotonNetwork.LocalPlayer.ActorNumber)

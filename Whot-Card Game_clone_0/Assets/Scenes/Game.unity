@@ -1799,8 +1799,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 693899239}
-        m_TargetAssemblyTypeName: Menu, Assembly-CSharp
+      - m_Target: {fileID: 855287298}
+        m_TargetAssemblyTypeName: RoomManager, Assembly-CSharp
         m_MethodName: MainMenu
         m_Mode: 1
         m_Arguments:
@@ -5243,6 +5243,7 @@ MonoBehaviour:
   losePanel: {fileID: 1777052158}
   shapeSprites: {fileID: 11400000, guid: 0fc88767a2c46ad46aa4986a8f5b37c5, type: 2}
   requestedShape: 
+  playerHandCount: 0
 --- !u!114 &855287305
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5912,8 +5913,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 693899239}
-        m_TargetAssemblyTypeName: Menu, Assembly-CSharp
+      - m_Target: {fileID: 855287298}
+        m_TargetAssemblyTypeName: RoomManager, Assembly-CSharp
         m_MethodName: MainMenu
         m_Mode: 1
         m_Arguments:
