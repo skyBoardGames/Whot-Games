@@ -77,6 +77,39 @@ public class DeckManager : MonoBehaviourPun
         newCard.SetActive(false);
     }
 
+    private void ReshuffleDiscardPileIntoDeck()
+    {
+        // Exclude the top card from reshuffling
+        List<GameObject> discardPileCards = new List<GameObject>();
+
+        foreach (Transform card in discardPileTransform)
+        {
+            if (card.gameObject != topCard)
+            {
+                discardPileCards.Add(card.gameObject);
+            }
+        }
+
+        // Move cards from the discard pile to the deck
+        foreach (var card in discardPileCards)
+        {
+            card.transform.SetParent(deckTransform);
+            card.SetActive(false);
+            deck.Add(card);
+        }
+
+        // Clear discard pile except the top card
+        foreach (var card in discardPileCards)
+        {
+            discardPileCards.Remove(card);
+        }
+
+        // Shuffle the deck
+        photonView.RPC("RPC_ShuffleDeck", RpcTarget.AllBuffered);
+
+        Debug.Log("Discard pile reshuffled into the deck.");
+    }
+
     #endregion
 
     #region Public Methods
@@ -120,7 +153,7 @@ public class DeckManager : MonoBehaviourPun
                     potentialTopCard.SetActive(true);
                     potentialTopCard.transform.SetParent(discardPileTransform);
                     potentialTopCard.transform.localPosition = Vector3.zero; // Adjust position to discard pile
-                    potentialTopCard.transform.localScale = Vector3.one * 0.4f; // Adjust size for discard pile
+                    potentialTopCard.transform.localScale = Vector3.one * 0.34f; // Adjust size for discard pile
                     topCard = potentialTopCard;
 
                     // Disable collider on the top card
@@ -153,8 +186,21 @@ public class DeckManager : MonoBehaviourPun
     {
         if (!TurnManager.Instance.isBlocking)
         {
-            if (!GameManager.Instance.isShapeSelectionActive && TurnManager.Instance.isPlayerTurn && deck.Count > 0)
+            if (!GameManager.Instance.isShapeSelectionActive && TurnManager.Instance.isPlayerTurn)
             {
+                if (deck.Count == 0)
+                {
+                    Debug.LogWarning("Deck is empty. Reshuffling discard pile into deck.");
+                    ReshuffleDiscardPileIntoDeck();
+
+                    // If the deck is still empty after reshuffling, log an error
+                    if (deck.Count == 0)
+                    {
+                        Debug.LogError("No cards available to draw even after reshuffling.");
+                        return;
+                    }
+                }
+
                 // Ensure the top card is not drawn
                 if (topCard == null || topCard.transform.parent != discardPileTransform)
                 {
@@ -166,6 +212,7 @@ public class DeckManager : MonoBehaviourPun
             }
         }
     }
+
 
     #endregion
 
@@ -191,10 +238,10 @@ public class DeckManager : MonoBehaviourPun
             }
         }
 
-        for (int i = 0; i < 4; i++) // Add Whot cards
+       /** for (int i = 0; i < 4; i++) // Add Whot cards
         {
             CreateCard("Whot", 20);
-        }
+        }*/
 
         Debug.Log($"Deck initialized with {deck.Count} cards.");
     }
@@ -273,7 +320,7 @@ public class DeckManager : MonoBehaviourPun
             newTopCard.GetComponent<Card>().SetCard(shape, number);
             newTopCard.SetActive(true);
             newTopCard.transform.localPosition = Vector3.zero; // Adjust position to discard pile
-            newTopCard.transform.localScale = Vector3.one * 0.4f; // Adjust size for discard pile
+            newTopCard.transform.localScale = Vector3.one * 0.34f; // Adjust size for discard pile
             topCard = newTopCard;
 
             // Disable collider on the top card
@@ -285,7 +332,7 @@ public class DeckManager : MonoBehaviourPun
 
             topCard.transform.SetParent(discardPileTransform);
             topCard.transform.localPosition = Vector3.zero;
-            topCard.transform.localScale = Vector3.one * 0.4f;
+            topCard.transform.localScale = Vector3.one * 0.34f;
             topCard.SetActive(true);
         }
     }

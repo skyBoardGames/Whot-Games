@@ -8,7 +8,7 @@ public class Card : MonoBehaviour
     private Collider2D cardCollider;
     public bool isPositioned = false;
 
-    [SerializeField] private TextMeshProUGUI numberText;
+    [SerializeField] private TextMeshProUGUI numberText, numberText2;
     [SerializeField] private SpriteRenderer spriteRenderer;
     [SerializeField] private GameObject cardBack;
 
@@ -69,6 +69,7 @@ public class Card : MonoBehaviour
     void UpdateCard()
     {
         numberText.text = number.ToString();
+        numberText2.text = number.ToString();
         if (shapeSprites == null)
         {
             Debug.LogError("ShapeSprites dictionary is null in Card.");

@@ -62,8 +62,7 @@ public class TurnManager : MonoBehaviourPun
             Debug.Log("Switching turns is blocked because shape selection is pending.");
             return;
         }
-        if (!PhotonNetwork.IsMasterClient)
-            return;
+       
 
         int totalPlayers = PhotonNetwork.PlayerList.Length;
 

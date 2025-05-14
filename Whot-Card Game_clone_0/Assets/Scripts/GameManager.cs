@@ -4,6 +4,8 @@ using UnityEngine;
 using Photon.Pun;
 using UnityEngine.SceneManagement;
 using TMPro;
+using System.Net.Sockets;
+
 public class GameManager : MonoBehaviourPunCallbacks
 {
     #region Singleton
@@ -18,6 +20,9 @@ public class GameManager : MonoBehaviourPunCallbacks
     public ShapeSpriteSO shapeSprites;
     public string requestedShape;
     public int playerHandCount;
+    bool isCodeSent = false;
+    string code = "";
+    private SocketIOUnity socket;
     #endregion
 
     #region Unity Methods
@@ -39,13 +44,35 @@ public class GameManager : MonoBehaviourPunCallbacks
         UIManager.Instance.HideAllPanels();
         DeckManager.Instance.InitializeGame();
         requestedShape = null;
+        //StartCoroutine(GetCode());
+       //StartCoroutine(WaitLobbyID());
     }
 
     void Update()
     {
         PlayerManager.Instance.HandleSwipeScrolling();
+
     }
     #endregion
+
+    private bool GetIsCodeSent()
+    {
+        return isCodeSent;
+    }
+    IEnumerator GetCode()
+    {
+        yield return new WaitForSeconds(3);
+        code = "12345";
+        isCodeSent = true;
+    }
+
+    IEnumerator WaitLobbyID()
+    {
+        yield return new WaitUntil(GetIsCodeSent);
+       // yield return new WaitForSeconds(3);
+       
+        RoomManager.Instance.JoinOrCreateRoom(code);
+    }
 
     #region Public Methods
     public void CheckForWinCondition()
@@ -60,6 +87,7 @@ public class GameManager : MonoBehaviourPunCallbacks
                     // Local player won
                     winPanel.SetActive(true);
                     photonView.RPC("ShowLosePanelForOpponent", RpcTarget.Others); // Notify the opponent
+                  
                 }
                 else
                 {

@@ -15,6 +15,6 @@ public class SplashScreen : MonoBehaviour
     IEnumerator LoadMainMenuAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
-        SceneManager.LoadScene("Menu");
+        SceneManager.LoadScene("Game");
     }
 }

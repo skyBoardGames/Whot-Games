@@ -67,7 +67,7 @@ public class PlayerManager : MonoBehaviourPun
         // Ensure the player's hand exists before accessing it
         if (!playerHands.ContainsKey(PhotonNetwork.LocalPlayer.ActorNumber))
         {
-            Debug.LogWarning($"Player hand not found for actor {PhotonNetwork.LocalPlayer.ActorNumber}. Aborting swipe handling.");
+           // Debug.LogWarning($"Player hand not found for actor {PhotonNetwork.LocalPlayer.ActorNumber}. Aborting swipe handling.");
             return;
         }
 
@@ -202,7 +202,7 @@ public class PlayerManager : MonoBehaviourPun
     {
         if (handTransform == playerHandTransform)
         {
-            float cardSpacing = 1.5f;
+            float cardSpacing = 1.3f;
             float startPositionX = -((hand.Count - 1) * cardSpacing) / 2f; // Center the hand
 
             for (int i = 0; i < hand.Count; i++)
@@ -291,10 +291,7 @@ public class PlayerManager : MonoBehaviourPun
     void RPC_PlayCard(string shape, int number, int actorNumber)
     {
 
-        if (actorNumber != PhotonNetwork.LocalPlayer.ActorNumber)
-        {
-            return; // Skip processing if it's not the local player who played the card
-        }
+     
         // Deactivate the previous top card if it exists
         if (DeckManager.Instance.topCard != null)
         {
